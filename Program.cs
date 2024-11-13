@@ -45,25 +45,19 @@ namespace ConsoleApp1
         {
             using (var context = new BibliotekaContext())
             {
-
                 Console.WriteLine("Dodaj Książke");
 
                 Console.WriteLine("Podaj imie");
-
                 string dodajimie = Console.ReadLine();
 
                 Console.WriteLine("Podaj Nazwisko");
-
                 string dodajnazwisko = Console.ReadLine();
+
                 Console.WriteLine("Podaj książke");
-
                 string dodajksiazke = Console.ReadLine();
+
                 Console.WriteLine("Podaj wydawnictwo");
-
                 string dodajwydawnictwo = Console.ReadLine();
-
-
-
 
                 // Dodawanie przykładowych danych
                 var wydawnictwo = new Wydawnictwo { Nazwa = dodajwydawnictwo };
@@ -74,7 +68,7 @@ namespace ConsoleApp1
 
                 var ksiazka = new Ksiazka
                 {
-                    Tytul = dodajwydawnictwo,
+                    Tytul = dodajksiazke,
                     Wydawnictwo = wydawnictwo,
                     Autorzy = new List<Autor> { autor }
                 };
@@ -82,24 +76,20 @@ namespace ConsoleApp1
 
                 context.SaveChanges();
 
-
                 // Wyświetlanie danych z bazy
                 var ksiazki = context.Ksiazki.Include(k => k.Wydawnictwo).Include(k => k.Autorzy).ToList();
                 foreach (var k in ksiazki)
                 {
                     Console.WriteLine($"Książka: {k.Tytul}, Wydawnictwo: {k.Wydawnictwo.Nazwa}, Autor: {string.Join(", ", k.Autorzy.Select(a => a.Imie + " " + a.Nazwisko))}");
                 }
-                //usuwanie danych
 
+                // Usuwanie danych
                 Console.WriteLine("Usuń Książke");
-
                 Console.WriteLine("Podaj książke");
-
                 string usunksiazke = Console.ReadLine();
 
-
                 var usunksiazka = context.Ksiazki.FirstOrDefault(k => k.Tytul == usunksiazke);
-                if (usunksiazke != null)
+                if (usunksiazka != null)
                 {
                     // Usunięcie książki z kontekstu
                     context.Ksiazki.Remove(usunksiazka);
@@ -113,17 +103,97 @@ namespace ConsoleApp1
                 {
                     Console.WriteLine("Nie znaleziono książki o podanym tytule.");
                 }
-               
-            
+
                 foreach (var k in context.Ksiazki)
                 {
                     Console.WriteLine($"Książka: {k.Tytul}, Wydawnictwo: {k.Wydawnictwo.Nazwa}, Autor: {string.Join(", ", k.Autorzy.Select(a => a.Imie + " " + a.Nazwisko))}");
                 }
 
+
+
+                // Edytowanie danych
+                Console.WriteLine("Edytuj Książke");
+
+                Console.WriteLine("Podaj tytuł książki do edycji (jak nie chcesz edytować to nic nie wpisuj)");
+                string edytujksiazke = Console.ReadLine();
+
+                var edytowanaKsiazka = context.Ksiazki.Include(k => k.Wydawnictwo).Include(k => k.Autorzy).FirstOrDefault(k => k.Tytul == edytujksiazke);
+                if (edytowanaKsiazka != null)
+                {
+                    Console.WriteLine("Podaj nowy tytuł");
+                    edytowanaKsiazka.Tytul = Console.ReadLine();
+
+                    Console.WriteLine("Podaj nowe wydawnictwo");
+                    string noweWydawnictwo = Console.ReadLine();
+                    var wydawnictwoDoEdycji = context.Wydawnictwa.FirstOrDefault(w => w.Nazwa == noweWydawnictwo);
+                    if (wydawnictwoDoEdycji == null)
+                    {
+                        wydawnictwoDoEdycji = new Wydawnictwo { Nazwa = noweWydawnictwo };
+                        context.Wydawnictwa.Add(wydawnictwoDoEdycji);
+                    }
+                    edytowanaKsiazka.Wydawnictwo = wydawnictwoDoEdycji;
+
+                    Console.WriteLine("Podaj nowe imię autora");
+                    string noweImie = Console.ReadLine();
+                    Console.WriteLine("Podaj nowe nazwisko autora");
+                    string noweNazwisko = Console.ReadLine();
+                    var autorDoEdycji = context.Autorzy.FirstOrDefault(a => a.Imie == noweImie && a.Nazwisko == noweNazwisko);
+                    if (autorDoEdycji == null)
+                    {
+                        autorDoEdycji = new Autor { Imie = noweImie, Nazwisko = noweNazwisko };
+                        context.Autorzy.Add(autorDoEdycji);
+                    }
+                    edytowanaKsiazka.Autorzy = new List<Autor> { autorDoEdycji };
+
+                    context.SaveChanges();
+                    Console.WriteLine("Książka została zedytowana.");
+                }
+                else
+                {
+                    Console.WriteLine("Nie znaleziono książki o podanym tytule.");
+                }
+
+
+                foreach (var k in context.Ksiazki)
+                {
+                    Console.WriteLine($"Książka: {k.Tytul}, Wydawnictwo: {k.Wydawnictwo.Nazwa}, Autor: {string.Join(", ", k.Autorzy.Select(a => a.Imie + " " + a.Nazwisko))}");
+                }
+
+
+                // Filtrowanie danych
+                Console.WriteLine("Filtrowanie rekordów danych");
+                Console.WriteLine("Podaj czym chcesz filtrować. Wybierz jedno z tych 3: (nazwisko autora, tytuł książki, nazwa wydawnictwa):");
+                string kryterium = Console.ReadLine();
+
+                Console.WriteLine("Podaj co chcesz wyszukać");
+                string wartosc = Console.ReadLine();
+
+                var filtrowaneKsiazki = context.Ksiazki.Include(k => k.Wydawnictwo).Include(k => k.Autorzy).AsQueryable();
+
+                if (kryterium == "nazwisko autora")
+                {
+                    filtrowaneKsiazki = filtrowaneKsiazki.Where(k => k.Autorzy.Any(a => a.Nazwisko.Contains(wartosc)));
+                }
+                else if (kryterium == "tytuł książki")
+                {
+                    filtrowaneKsiazki = filtrowaneKsiazki.Where(k => k.Tytul.Contains(wartosc));
+                }
+                else if (kryterium == "nazwa wydawnictwa")
+                {
+                    filtrowaneKsiazki = filtrowaneKsiazki.Where(k => k.Wydawnictwo.Nazwa.Contains(wartosc));
+                }
+                else
+                {
+                    Console.WriteLine("Nieznane kryterium filtrowania.");
+                }
+
+                foreach (var k in filtrowaneKsiazki.ToList())
+                {
+                    Console.WriteLine($"Książka: {k.Tytul}, Wydawnictwo: {k.Wydawnictwo.Nazwa}, Autor: {string.Join(", ", k.Autorzy.Select(a => a.Imie + " " + a.Nazwisko))}");
+                }
+
                 Console.ReadLine();
-
             }
-
         }
     }
 }
